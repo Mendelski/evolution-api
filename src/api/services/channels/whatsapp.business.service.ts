@@ -1044,23 +1044,34 @@ export class BusinessStartupService extends ChannelStartupService {
       throw new BadRequestException('Button texts cannot be repeated', 'Button IDs cannot be repeated.');
     }
 
-    return await this.sendMessageWithTyping(
-      data.number,
-      {
-        text: !embeddedMedia?.mediaKey ? data.buttonMessage.title : undefined,
-        buttons: data.buttonMessage.buttons.map((button) => {
-          return {
-            type: 'reply',
-            reply: {
-              title: button.buttonText,
-              id: button.buttonId,
-            },
-          };
-        }),
-        [embeddedMedia?.mediaKey]: embeddedMedia?.message,
+    // Estrutura correta para mensagem interativa com botões
+    const buttonMessage = {
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: {
+          text: data.buttonMessage.title,
+        },
+        action: {
+          buttons: data.buttonMessage.buttons.map((button) => {
+            return {
+              type: 'reply',
+              reply: {
+                id: button.buttonId,
+                title: button.buttonText,
+              },
+            };
+          }),
+        },
       },
-      data?.options,
-    );
+    };
+
+    // Adiciona o embeddedMedia se necessário
+    if (embeddedMedia?.mediaKey) {
+      buttonMessage[embeddedMedia.mediaKey] = embeddedMedia.message;
+    }
+
+    return await this.sendMessageWithTyping(data.number, buttonMessage, data?.options);
   }
 
   public async locationMessage(data: SendLocationDto) {
